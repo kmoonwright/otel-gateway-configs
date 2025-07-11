@@ -1,0 +1,66 @@
+family: otel-nginx-sidecar
+networkMode: awsvpc
+requiresCompatibilities:
+  - FARGATE
+cpu: "512"
+memory: "1024"
+executionRoleArn: arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/<YOUR_ECS_TASK_EXECUTION_ROLE>
+taskRoleArn: arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/<YOUR_ECS_TASK_ROLE>
+containerDefinitions:
+  - name: nginx
+    image: nginx:alpine
+    cpu: 128
+    memory: 256
+    essential: true
+    portMappings:
+      - containerPort: 4318
+        protocol: tcp
+    mountPoints:
+      - sourceVolume: nginx-conf
+        containerPath: /etc/nginx/nginx.conf
+        readOnly: true
+    logConfiguration:
+      logDriver: awslogs
+      options:
+        awslogs-group: /ecs/otel-nginx-sidecar
+        awslogs-region: <YOUR_AWS_REGION>
+        awslogs-stream-prefix: nginx
+
+  - name: otelcol
+    image: otel/opentelemetry-collector-contrib:0.128.0
+    cpu: 256
+    memory: 512
+    essential: true
+    command: ["--config=/etc/otelcol/config.yaml"]
+    portMappings:
+      - containerPort: 4318
+        protocol: tcp
+      - containerPort: 13133
+        protocol: tcp
+    mountPoints:
+      - sourceVolume: collector-conf
+        containerPath: /etc/otelcol/config.yaml
+        readOnly: true
+    logConfiguration:
+      logDriver: awslogs
+      options:
+        awslogs-group: /ecs/otel-nginx-sidecar
+        awslogs-region: <YOUR_AWS_REGION>
+        awslogs-stream-prefix: otelcol
+
+volumes:
+  - name: nginx-conf
+    host:
+      sourcePath: /path/on/ecs/nginx.conf # Replace or use EFS (see below)
+  - name: collector-conf
+    host:
+      sourcePath: /path/on/ecs/collector-contrib.yaml # Replace or use EFS (see below)
+
+# If using EFS, replace `host` with this structure:
+#  efsVolumeConfiguration:
+#    fileSystemId: <YOUR_EFS_ID>
+#    rootDirectory: "/"
+#    transitEncryption: "ENABLED"
+#    authorizationConfig:
+#      accessPointId: <YOUR_EFS_ACCESS_POINT_ID>
+#      iam: "ENABLED"

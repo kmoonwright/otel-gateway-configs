@@ -1,0 +1,54 @@
+{
+  "family": "otel-nginx-sidecar",
+  "containerDefinitions": [
+    {
+      "name": "nginx",
+      "image": "nginx:alpine",
+      "portMappings": [
+        { "containerPort": 4318 }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "nginx-conf",
+          "containerPath": "/etc/nginx/nginx.conf",
+          "readOnly": true
+        }
+      ],
+      "dependsOn": [
+        {
+          "containerName": "otelcol",
+          "condition": "START"
+        }
+      ]
+    },
+    {
+      "name": "otelcol",
+      "image": "otel/opentelemetry-collector-contrib:0.128.0",
+      "portMappings": [
+        { "containerPort": 4318 },
+        { "containerPort": 13133 }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "collector-conf",
+          "containerPath": "/etc/otelcol/config.yaml",
+          "readOnly": true
+        }
+      ]
+    }
+  ],
+  "volumes": [
+    {
+      "name": "nginx-conf",
+      "host": {
+        "sourcePath": "/full/path/to/nginx.conf"
+      }
+    },
+    {
+      "name": "collector-conf",
+      "host": {
+        "sourcePath": "/full/path/to/collector-contrib.yaml"
+      }
+    }
+  ]
+}
