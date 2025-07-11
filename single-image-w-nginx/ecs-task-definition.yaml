@@ -1,0 +1,26 @@
+family: otelcol-nginx-single
+networkMode: awsvpc
+requiresCompatibilities:
+  - FARGATE
+cpu: "512"
+memory: "1024"
+executionRoleArn: arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/<YOUR_ECS_TASK_EXECUTION_ROLE>
+taskRoleArn: arn:aws:iam::<YOUR_AWS_ACCOUNT_ID>:role/<YOUR_ECS_TASK_ROLE>
+containerDefinitions:
+  - name: otelcol-nginx
+    image: <YOUR_REPO>/otelcol-nginx:latest   # <-- Your combined image
+    cpu: 512
+    memory: 1024
+    essential: true
+    portMappings:
+      - containerPort: 4318
+        protocol: tcp
+      - containerPort: 13133
+        protocol: tcp
+    logConfiguration:
+      logDriver: awslogs
+      options:
+        awslogs-group: /ecs/otelcol-nginx-single
+        awslogs-region: <YOUR_AWS_REGION>
+        awslogs-stream-prefix: otelcol-nginx
+# No volumes are necessary if you bake configs into your image or copy them at build time
